@@ -1,0 +1,1 @@
+#package_name.dsviewer_modules.NAME_OF_FILE_WITHOUT_EXTENSION
