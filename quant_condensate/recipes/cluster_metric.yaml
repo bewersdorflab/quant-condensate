@@ -1,0 +1,29 @@
+- cb_clustering.ClusteringByLabel:
+    input_name: mean_normalized
+    mask: input_labeled_cells
+    output_name: cluster_metrics_cell
+- output.HDFOutput:
+    filePattern: '{output_dir}/{file_stub}_cluster_metrics_cell.hdf'
+    inputVariables:
+      cluster_metrics_cell: cluster_metrics
+- cb_clustering.AddMetaData:
+    input_name: input
+    metadata_to_add:
+      Camera.ADOffset: 370
+      Camera.ElectronsPerCount: 4.6
+      Camera.TrueEMGain: 500.0
+      voxelsize.x: 0.263204772898
+      voxelsize.y: 0.263204772898
+    output_name: with_metadata
+- cb_clustering.FlatAndDarkCorrect:
+    input_image: with_metadata
+    darkmap_filename: '/media/smeagol/d5b5c790-4eba-4212-b990-062bba0b7a3b/data/cry2_cajal_bodies/ADO_191209/darkmap_191209warm.tif'
+    output_name: corrected
+- cb_clustering.FilterSpikes:
+    input: corrected
+    output: filtered
+    threshold_change: 1500.0
+    threshold_factor: 15.0
+- cb_clustering.MeanNormalizeToFirstFrame:
+    input_image: filtered
+    output_name: mean_normalized
