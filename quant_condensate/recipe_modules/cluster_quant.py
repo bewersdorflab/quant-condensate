@@ -17,7 +17,7 @@ class MeanNormalizeToFirstFrame(ModuleBase):
 
     def execute(self, namespace):
         from PYME.IO.image import ImageStack
-        from quant_condensate.python_microscopy import MeanNormalizedDataSource
+        from quant_condensate import MeanNormalizedDataSource
         image = namespace[self.input_image]
 
         mnd = MeanNormalizedDataSource.DataSource(image.data, image.mdh)
@@ -155,7 +155,7 @@ class FlatAndDarkCorrect(ModuleBase):
     output_name = Output('corrected')
 
     def execute(self, namespace):
-        from quant_condensate.python_microscopy import FlatfieldDarkCorrectedDataSource
+        from quant_condensate import FlatfieldDarkCorrectedDataSource
         from PYME.IO.image import ImageStack
         image = namespace[self.input_image]
 
