@@ -301,3 +301,19 @@ class AddMetaData(ModuleBase):
             inp.mdh = mdh
         namespace[self.output_name] = inp
 
+
+@register_module('SwapColorAndSlice')    
+class SwapColorAndSlice(ModuleBase):
+    """swap slice (z/t) with color"""
+    input_name = Input('input')
+    output_name = Output('swapped')
+
+    def execute(self, namespace):
+        from quant_condensate.SwapColorAndSliceDataSource import DataSource
+        from PYME.IO.MetaDataHandler import DictMDHandler
+        from PYME.IO.image import ImageStack
+        im = namespace[self.input_name]
+        mdh = DictMDHandler()
+        mdh.copyEntriesFrom(im.mdh)
+        mdh['SwapColorAndSlice'] = True
+        namespace[self.output_name] = ImageStack(DataSource(im.data), mdh=mdh)
