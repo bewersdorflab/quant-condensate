@@ -1,0 +1,90 @@
+- filters.GaussianFilter:
+    inputName: conf
+    outputName: conf_gauss
+    sigmaX: 2.0
+    sigmaY: 2.0
+    sigmaZ: 0.0
+- processing.Threshold:
+    inputName: conf_gauss
+    method: otsu
+    outputName: conf_otsu
+- measurement.Measure2D:
+    inputIntensity: sted1
+    inputLabels: labeled1
+    measureContour: false
+    outputName: measurements1
+- processing.Label:
+    inputName: mask
+    minRegionPixels: 50
+    outputName: labeled
+- base.ExtractChannel:
+    inputName: swapped
+    outputName: conf0
+- base.ExtractChannel:
+    channelToExtract: 2
+    inputName: swapped
+    outputName: conf1
+- base.ExtractChannel:
+    channelToExtract: 1
+    inputName: swapped
+    outputName: sted0
+- base.ExtractChannel:
+    channelToExtract: 3
+    inputName: swapped
+    outputName: sted1
+- base.JoinChannels:
+    inputChan0: sted0
+    inputChan1: sted1
+    inputChan2: ''
+    inputChan3: ''
+    outputName: sted
+- base.JoinChannels:
+    inputChan0: conf0
+    inputChan1: conf1
+    inputChan2: ''
+    inputChan3: ''
+    outputName: conf
+- filters.GaussianFilter:
+    inputName: sted
+    outputName: sted_gauss
+    sigmaX: 2.0
+    sigmaY: 2.0
+    sigmaZ: 0.0
+- processing.Threshold:
+    inputName: sted_gauss
+    method: otsu
+    outputName: sted_otsu
+- base.LogicalAnd:
+    inputName0: sted_otsu
+    inputName1: conf_otsu
+    outputName: mask
+    processFramesIndividually: true
+- base.ExtractChannel:
+    inputName: labeled
+    outputName: label0
+- base.ExtractChannel:
+    channelToExtract: 1
+    inputName: labeled
+    outputName: labeled1
+- measurement.Measure2D:
+    inputIntensity: sted0
+    inputLabels: label0
+    measureContour: false
+    outputName: measurements0
+- cluster_quant.SwapColorAndSlice:
+    input_name: with_metadata
+    output_name: swapped
+- cb_clustering.AddMetaData:
+    input_name: input
+    metadata_to_add:
+      voxelsize.x: 0.02
+      voxelsize.y: 0.02
+    output_name: with_metadata
+- output.HDFOutput:
+    filePattern: '{output_dir}/{file_stub}.hdf'
+    inputVariables:
+      measurements0: measurements0
+      measurements1: measurements1
+- output.ImageOutput:
+    filePattern: '{output_dir}/{file_stub}_labeled.tif'
+    inputName: labeled
