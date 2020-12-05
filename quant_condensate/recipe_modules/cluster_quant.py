@@ -369,7 +369,7 @@ class OffsetMeasure(ModuleBase):
         n1 = mask1.sum()
         n_total = n0 + n1
         mask_both = mask0 * mask1
-        intensity_overlap = mask_both * (chan0 + chan1)
+        intensity_overlap = (mask_both * (chan0 + chan1)).sum()
         intensity0 = (chan0 * mask0).sum()
         intensity1 = (chan1 * mask1).sum()
         intensity_total = intensity0 + intensity1
