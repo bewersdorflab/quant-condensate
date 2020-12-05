@@ -317,3 +317,79 @@ class SwapColorAndSlice(ModuleBase):
         mdh.copyEntriesFrom(im.mdh)
         mdh['SwapColorAndSlice'] = True
         namespace[self.output_name] = ImageStack(DataSource(im.data), mdh=mdh)
+
+@register_module('OffsetMeasure')
+class OffsetMeasure(ModuleBase):
+    """
+
+    Notes
+    -----
+    - voxelsize must be the same for all inputs
+    - all inputs must be single-channel
+    """
+    input_chan0 = Input('chan0')
+    input_mask0 = Input('mask0')
+    input_chan1 = Input('chan1')
+    input_mask1 = Input('mask1')
+    output_name = Output('measures')
+
+    _dtype = [
+        ('offset', '<f8'), ('com0', '<3f8'), ('com1', '<3f8'),
+        ('n_overlapping', '<i4'), ('n_0', '<i4'), ('n_1', '<i4'), 
+        ('n_total', '<i4'), ('fractional_volume_overlap', '<f8'),
+        ('fractional_intensity_overlap', '<f8'), ('intensity_total', '<f8'),
+        ('intensity0', '<f8'), ('intensity1', '<f8')
+    ]
+
+    def execute(self, namespace):
+        from scipy.ndimage import center_of_mass
+        from PYME.IO.MetaDataHandler import DictMDHandler
+        
+        chan0 = namespace[self.input_chan0]
+        mdh = DictMDHandler()
+        mdh.copyEntriesFrom(chan0.mdh)
+        vx, vy, vz = chan0.voxelsize
+        chan0 = np.stack([chan0.data[:,:,t,0].squeeze() for t in range(chan0.data.shape[2])], axis=2)
+        mask0 = namespace[self.input_mask0]
+        mask0 = np.stack([mask0.data[:,:,t,0].squeeze() for t in range(mask0.data.shape[2])], axis=2)
+        chan1 = namespace[self.input_chan1]
+        chan1 = np.stack([chan1.data[:,:,t,0].squeeze() for t in range(chan1.data.shape[2])], axis=2)
+        mask1 = namespace[self.input_mask1]
+        mask1 = np.stack([mask1.data[:,:,t,0].squeeze() for t in range(mask1.data.shape[2])], axis=2)
+
+        com0 = center_of_mass(chan0, mask0)
+        com1 = center_of_mass(chan1, mask1)
+        ox = vx * (com0[0] - com1[0])
+        oy = vy * (com0[1] - com1[1])
+        oz = vz * (com0[2] - com1[2])
+        offset = np.sqrt((ox ** 2) + (oy ** 2) + (oz ** 2))
+
+        n0 = mask0.sum()
+        n1 = mask1.sum()
+        n_total = n0 + n1
+        mask_both = mask0 * mask1
+        intensity_overlap = mask_both * (chan0 + chan1)
+        intensity0 = chan0 * mask0
+        intensity1 = chan1 * mask1
+        intensity_total = intensity0 + intensity1
+        n_overlapping = np.sum(mask0 * mask1)
+
+        
+        out = np.empty((1,), dtype=self._dtype)
+        out[0]['offset'] = offset
+        out[0]['com0'] = com0
+        out[0]['com1'] = com1
+        out[0]['n_overlapping'] = n_overlapping
+        out[0]['n_0'] = n0
+        out[0]['n_1'] = n1
+        out[0]['n_total'] = n_total
+        out[0]['fraction_volume_overlap'] = n_overlapping / (n_total)
+        out[0]['fractional_intensity_overlap'] = intensity_overlap / intensity_total
+        out[0]['intensity_total'] = intensity_total
+        out[0]['intensity0'] = intensity0
+        out[0]['intensity1'] = intensity1
+
+        mdh = DictMDHandler()
+        mdh.copyEntriesFrom(im.mdh)
+        # mdh['SwapColorAndSlice'] = True
+        # namespace[self.output_name] = ImageStack(DataSource(im.data), mdh=mdh)
