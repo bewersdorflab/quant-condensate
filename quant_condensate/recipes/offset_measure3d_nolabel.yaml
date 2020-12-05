@@ -1,0 +1,92 @@
+- filters.GaussianFilter:
+    inputName: conf
+    outputName: conf_gauss
+    processFramesIndividually: false
+    sigmaX: 2.0
+    sigmaY: 2.0
+    sigmaZ: 0.2
+- processing.Threshold:
+    inputName: conf_gauss
+    method: otsu
+    outputName: conf_otsu
+    processFramesIndividually: false
+- base.ExtractChannel:
+    inputName: input
+    outputName: conf0
+- base.ExtractChannel:
+    channelToExtract: 2
+    inputName: input
+    outputName: conf1
+- base.ExtractChannel:
+    channelToExtract: 1
+    inputName: input
+    outputName: sted0
+- base.ExtractChannel:
+    channelToExtract: 3
+    inputName: input
+    outputName: sted1
+- base.JoinChannels:
+    inputChan0: sted0
+    inputChan1: sted1
+    inputChan2: ''
+    inputChan3: ''
+    outputName: sted
+- base.JoinChannels:
+    inputChan0: conf0
+    inputChan1: conf1
+    inputChan2: ''
+    inputChan3: ''
+    outputName: conf
+- filters.GaussianFilter:
+    inputName: sted
+    outputName: sted_gauss
+    processFramesIndividually: false
+    sigmaX: 2.0
+    sigmaY: 2.0
+    sigmaZ: 0.2
+- processing.Threshold:
+    inputName: sted_gauss
+    method: otsu
+    outputName: sted_otsu
+    processFramesIndividually: false
+- base.LogicalAnd:
+    inputName0: sted_otsu
+    inputName1: conf_otsu
+    outputName: mask
+- base.ExtractChannel:
+    inputName: mask
+    outputName: labeled0
+- base.ExtractChannel:
+    channelToExtract: 1
+    inputName: mask
+    outputName: labeled1
+- cluster_quant.OffsetMeasure:
+    input_chan0: sted0
+    input_chan1: sted1
+    input_mask0: labeled0
+    input_mask1: labeled1
+    output_name: stedoffset
+- cluster_quant.OffsetMeasure:
+    input_chan0: conf0
+    input_chan1: conf1
+    input_mask0: conflabeled0
+    input_mask1: conflabeled1
+    output_name: confoffset
+- base.ExtractChannel:
+    inputName: conf_otsu
+    outputName: conflabeled0
+- base.ExtractChannel:
+    channelToExtract: 1
+    inputName: conf_otsu
+    outputName: conflabeled1
+- output.HDFOutput:
+    filePattern: '{output_dir}/{file_stub}_offset_measure.hdf'
+    inputVariables:
+      confoffset: confocal
+      stedoffset: sted
+- output.ImageOutput:
+    filePattern: '{output_dir}/{file_stub}_conf_labeled.tif'
+    inputName: conf_otsu
+- output.ImageOutput:
+    filePattern: '{output_dir}/{file_stub}_sted_labeled.tif'
+    inputName: mask

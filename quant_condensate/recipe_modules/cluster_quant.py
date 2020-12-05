@@ -326,6 +326,8 @@ class OffsetMeasure(ModuleBase):
     -----
     - voxelsize must be the same for all inputs
     - all inputs must be single-channel
+    - inputs can be labeled (multiple objects, e.g. label 0, label 1, etc.) but
+    the masks will be thresholded as everything that's not zero.
     """
     input_chan0 = Input('chan0')
     input_mask0 = Input('mask0')
@@ -353,10 +355,12 @@ class OffsetMeasure(ModuleBase):
         chan0 = np.stack([chan0.data[:,:,t,0].squeeze() for t in range(chan0.data.shape[2])], axis=2)
         mask0 = namespace[self.input_mask0]
         mask0 = np.stack([mask0.data[:,:,t,0].squeeze() for t in range(mask0.data.shape[2])], axis=2)
+        mask0 = mask0 > 0
         chan1 = namespace[self.input_chan1]
         chan1 = np.stack([chan1.data[:,:,t,0].squeeze() for t in range(chan1.data.shape[2])], axis=2)
         mask1 = namespace[self.input_mask1]
         mask1 = np.stack([mask1.data[:,:,t,0].squeeze() for t in range(mask1.data.shape[2])], axis=2)
+        mask1 = mask1 > 0
 
         com0 = center_of_mass(chan0, mask0)  # [px]
         com1 = center_of_mass(chan1, mask1)
