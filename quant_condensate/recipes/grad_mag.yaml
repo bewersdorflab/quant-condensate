@@ -1,0 +1,51 @@
+- base.ExtractChannel:
+    inputName: input
+    outputName: chan0
+- filters.GaussianFilter:
+    inputName: chan0
+    outputName: gauss
+    processFramesIndividually: false
+    sigmaX: 10.0
+    sigmaY: 10.0
+    sigmaZ: 4.0
+- processing.Threshold:
+    inputName: gauss
+    method: otsu
+    outputName: otsu
+- processing.Gradient3D:
+    inputName: chan0
+    outputNameX: grad_x
+    outputNameY: grad_y
+    outputNameZ: grad_z
+    physical_units: true
+- processing.VectorfieldNorm:
+    inputX: grad_x
+    inputY: grad_y
+    inputZ: grad_z
+    outputName: grad_mag
+- processing.Label:
+    inputName: otsu
+    outputName: labeled
+    processFramesIndividually: false
+- cluster_quant.StatisticsByLabel:
+    input_labels: labeled
+    input_name: grad_mag
+    output_name: label_metrics
+- output.HDFOutput:
+    filePattern: '{output_dir}/{file_stub}_grad_mag.hdf'
+    inputVariables:
+      label_metrics: grad_mag
+- output.ImageOutput:
+    filePattern: '{output_dir}/{file_stub}_labeled.h5'
+    inputName: labeled
+- processing.Projection:
+    inputName: labeled
+    kind: Max
+    outputName: max_proj_labeled
+    processFramesIndividually: false
+- output.RGBImageOutput:
+    filePattern: '{output_dir}/{file_stub}_max_proj_labels.png'
+    inputName: max_proj_labeled
+- output.ImageOutput:
+    filePattern: '{output_dir}/{file_stub}_grad_mag.h5'
+    inputName: grad_mag

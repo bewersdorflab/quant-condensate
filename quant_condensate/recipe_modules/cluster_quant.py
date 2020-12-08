@@ -397,3 +397,95 @@ class OffsetMeasure(ModuleBase):
         out = tabular.RecArraySource(out)
         out.mdh = mdh
         namespace[self.output_name] = out
+
+
+@register_module('StatisticsByLabel')
+class StatisticsByLabel(ModuleBase):
+    """
+    
+    NOTE: only operates on first colour channel of stack.
+
+    Parameters
+    ----------
+    input_name : PYME.IO.ImageStack
+    labels : PYME.IO.ImageStack
+        labels had better be int, preferably positive. zero will be ignored 'unlabeled'
+    Returns
+    -------
+    output_name = Output
+
+
+    Notes
+    -----
+
+    """
+
+    input_name = Input('input')
+    input_labels = Input('labels')
+
+    output_name = Output('label_metrics')
+
+    def execute(self, namespace):
+        from scipy import stats
+
+        series = namespace[self.input_name]
+        data = np.stack([series.data[:,:,t,0].squeeze() for t in range(series.data.shape[2])], axis=2)
+
+        labels = namespace[self.input_labels].data
+        labels = np.stack([labels[:,:,t,0].squeeze() for t in range(labels.shape[2])], axis=2)
+
+        # drop zero label
+        zero_counts = 0
+        uni, n = np.unique(labels, return_counts=True)
+        if np.any(uni < 0):
+            raise ValueError('statistics by label does not support negative labels')
+        if 0 in uni:
+            zind = np.where(uni == 0)[0][0]
+            zero_counts = n[zind]
+            uni = np.delete(uni, zind)
+            n = np.delete(n, zind)
+        
+        logger.debug('labels: %s' % (uni))
+        
+        n_labels = len(uni)
+        var = np.empty(n_labels, dtype=float)
+        mean = np.empty_like(var)
+        median = np.empty_like(var)
+        mode = np.empty_like(var)
+        sum_ = np.empty_like(var)
+        n_pixels = np.empty(n_labels, dtype=int)
+        label = np.empty_like(n_pixels)
+        
+        I = np.argsort(labels.ravel())
+        data = data.ravel()[I]
+
+        start = zero_counts
+        for li in range(n_labels):
+            label_data = data[start:start + n[li]]
+
+            var[li] = np.var(label_data)
+            mean[li] = np.mean(label_data)
+            median[li] = np.median(label_data)
+            mode[li] = stats.mode(label_data, axis=None)[0][0]
+            sum_[li] = label_data.sum()
+            n_pixels[li] = len(label_data)
+            label[li] = uni[li]
+
+            start += n[li]
+
+        # package up and ship-out results
+        res = tabular.DictSource({
+            'variance': var, 
+            'mean': mean, 
+            'median': median, 
+            'mode': mode,
+            'sum': sum_,
+            'n_pixels': n,
+            'label': label
+        })
+        try:
+            res.mdh = series.mdh
+        except:
+            pass
+            
+        namespace[self.output_name] = res
