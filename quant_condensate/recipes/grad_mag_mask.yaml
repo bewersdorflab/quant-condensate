@@ -1,0 +1,50 @@
+- base.ExtractChannel:
+    inputName: input
+    outputName: chan0
+- filters.GaussianFilter:
+    inputName: input
+    outputName: gauss
+    processFramesIndividually: false
+    sigmaX: 15.0
+    sigmaY: 15.0
+    sigmaZ: 9.0
+- processing.Threshold:
+    inputName: gauss
+    method: otsu
+    outputName: otsu
+- processing.Gradient3D:
+    inputName: chan0
+    outputNameX: grad_x
+    outputNameY: grad_y
+    outputNameZ: grad_z
+    physical_units: true
+- processing.VectorfieldNorm:
+    inputX: grad_x
+    inputY: grad_y
+    inputZ: grad_z
+    outputName: grad_mag
+- processing.Projection:
+    inputName: mask
+    kind: Max
+    outputName: mask_projection
+    processFramesIndividually: false
+- output.RGBImageOutput:
+    filePattern: '{output_dir}/{file_stub}_max_projection.png'
+    inputName: mask_projection
+- output.ImageOutput:
+    filePattern: '{output_dir}/{file_stub}_grad_mag.h5'
+    inputName: grad_mag
+- base.ExtractChannel:
+    inputName: otsu
+    outputName: mask0
+- base.ExtractChannel:
+    channelToExtract: 1
+    inputName: otsu
+    outputName: mask1
+- base.BinaryOr:
+    inputName0: mask0
+    inputName1: mask1
+    outputName: mask
+- output.ImageOutput:
+    filePattern: '{output_dir}/{file_stub}_mask.h5'
+    inputName: mask
